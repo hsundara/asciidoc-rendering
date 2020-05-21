@@ -1,0 +1,171 @@
+= ACT website scraper
+Hari Sundararajan
+:toc:
+:icons: font
+:act: https://selfcare.actcorp.in/group/blr/myaccount
+
+
+TIP: The ACT app shows this information. I am just not a fan of using mobile apps
+
+== Work flow details
+
+There are multiple pieces in this project.
+
+* <<navigation>>
+* <<scraping>>
+* <<csv-update>>
+* <<tracked-data>>
+* <<runner>>
+* <<daily-email>>
+* <<web-access>>
+* <<TODO>>
+* <<outside-ACT>>
+
+[[navigation]]
+=== Navigating to the website (nodejs)
+
+* Trigger a connection to {act}
+
+WARNING: The connection *must* be triggered from inside the ACT network itself, which
+means this can not run in a cloud environment. See <<outside-ACT>> below for working around that
+
+* Look for the string _My Usage_ and click that.
+
+WARNING: Read <<TODO, todo>> for assumptions being made here
+
+* The resulting final HTML is then saved as the file "act.html"
+* An image is taken of just the table and saved as "act.png"
+
+
+[verse]
+____
+*Why are we using pupeeter instead of directly scraping the website?*
+
+The main page itself can be scraped successfully. The "my usage" page is accessed via a ajax/XHR request
+. Using Chrome's developer tools we can obtain the request being made and the end point.
+
+I tried re-creating the process using curl.
+
+* Pull the first page, obtain the cookies
+* Second request to second page using cookies from the previous step
+
+The returned value is a <partial-response> with some CDATA. The original view seems to be required somehow
+and I am not sure I know how to proceed.
+____
+
+[[scraping]]
+=== HTML scraping (python)
+
+* Use beautifulSoup to parse the HTML
+* Look for the table with the string `idt328` in its id attribute.
+* Create a new HTML with just this table, so we avoid parsing manually
+* Call pandas on this new HTML file to parse the table automatically
+* Use pandas to dump this HTML as a CSV file
+* Create a file with total data consumed, calculating by adding the relevant values
+
+
+[[csv-update]]
+=== Updating the collection
+
+* The existing CSV file already has a bunch of lines
+* The newly created CSV file may or may not have any new lines to add
+* Bash is used to look for lines in the new file that are not already in the original
+file and are added, maintaining order
+
+[[tracked-data]]
+=== Tracking and logging
+
+In order to rate limit ourselves, every time the nodejs script runs it logs
+the time of run.
+
+At the start of a run, we check whether the last run was more than 10 minutes back
+or not. If it is less than 10 minutes, we ignore.
+
+After every run, we create an output with the following details
+
+* Time of last run (in UTC? in IST?)
+* Status of last run (success/failure)
+* Data consumption maximums
+* time when data consumption maximums were obtained
+
+[[runner]]
+=== Project runner
+
+* Call the nodeJS script
+* if finished successfully (the script returned success, we have act.png and we have act.html), call python
+** if not, update the tracking file with time of last run and status of last run as failure
+* call the python script and verify we have a successful csv file generated
+* add up the values in the csv file and add to output file's data consumption maximums
+  and also update maximum calculation time
+
+
+[[daily-email]]
+=== Daily cron job
+
+* Every morning at 6AM, call the API to run the script
+** Do we include screen shot?
+
+[[redis-queue]]
+=== Redis queue
+The redis queue is used in the following ways
+
+* Parent bash service
+** blocking pop on `queue`
+** when a pop happens, look at `last_start_time` , if difference with current time is more than 10 minutes
+trigger a start
+
+* Runner script
+** at start, set `running` to 1
+** at start, set `last_start_time` to current
+
+[[python-redis]]
+* Python backend
+** if `running` is set to 1, return "running"
+** if `last_start_time` differs by more than 10 minutes, return "triggering" and add to `queue`
+** if `last_start_time` differs by less than 10 minutes, return "recently ran"
+
+
+[[web-access]]
+=== Web access to the data
+
+This is done using
+* nginx for SSL termination/ reverse proxy
+* python for back end
+* redis for communication between back end and runner
+
+* `/` returns the output file
+* `/img` returns the image
+* `/update` Do as described in <<python-redis, redis behavior>>
+
+[[TODO]]
+== TODO/Caveats/Assumptions
+
+* Run the whole thing without reliance on NodeJS using python+selenium. That way,
+we can run the entire project on the raspberry pi itself
+
+* I am assuming that `+_ACTMyAccount_WAR_ACTMyAccountportlet_:j_idt35:j_idt43+` refers to
+"My Details". A better way to do this would be to look for the string "my details" and find the
+parent _div_ it is enclosed in
+
+* Add the capability to support specifying a chrome path if required
+
+
+
+[[outside-ACT]]
+== Running from outside an ACT location
+
+If this is being run from outside an ACT location, the connection must be "proxied" through
+a machine at home. The proxy can be either a SOCKS proxy or a http proxy.
+
+For my purpose, since I am running an always-on raspberry pi at home, I use ssh to
+create a reverse tunnel that listens on the cloud instance, but connects to my raspberry
+pi proxy (set up using proxypi). Then puppeteer is launched with a setting to connect
+through this proxy
+
+[verse]
+____
+*Why can't I run this entire project on my raspberry p*
+
+The raspberry pi runs ARM v6 processor. nodeJS is not available for this processor.
+An alternative would be to try selenium, which is listed in the TODO
+____
