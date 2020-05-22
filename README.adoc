@@ -17,9 +17,9 @@ There are multiple pieces in this project.
 * <<tracked-data>>
 * <<runner>>
 * <<daily-email>>
+* <<redis-queue>>
 * <<web-access>>
-* <<TODO>>
-* <<outside-ACT>>
+* <<services>>
 
 [[navigation]]
 === Navigating to the website (nodejs)
@@ -131,11 +131,20 @@ trigger a start
 This is done using
 * nginx for SSL termination/ reverse proxy
 * python for back end
-* redis for communication between back end and runner
 
 * `/` returns the output file
 * `/img` returns the image
 * `/update` Do as described in <<python-redis, redis behavior>>
+
+[[services]]
+=== Services
+
+* nodejs-express service that supports `/`  `/update` `/img`
+* bash-runner that does a blocking wait and triggers the process
+* redis for communication between back end and runner
+* virtual framebuffer for running chrome
+* reverse proxy on home machine, if being run on cloud instance
+
 
 [[TODO]]
 == TODO/Caveats/Assumptions
