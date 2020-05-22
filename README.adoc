@@ -83,10 +83,11 @@ or not. If it is less than 10 minutes, we ignore.
 
 After every run, we create an output with the following details
 
-* Time of last run (in UTC? in IST?)
-* Status of last run (success/failure)
-* Data consumption maximums
-* time when data consumption maximums were obtained
+* last_start_time
+* last_success_time
+* last_failure_time
+* data_consumption
+
 
 [[runner]]
 === Project runner
