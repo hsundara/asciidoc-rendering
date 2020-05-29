@@ -1,0 +1,148 @@
+= Bash notes
+Hari Sundararajan
+:toc:
+
+== Fuzzy search
+
+https://towardsdatascience.com/fuzzy-string-matching-in-python-68f240d910fe
+
+
+== fields as seen by code
+ruTorrent/plugins/httprpc/init.js#L46-L138
+ruTorrent/plugins/httprpc/action.php
+
+....
+var is_open                 = iv(values[0]);
+var is_hash_checking        = iv(values[1]);
+var is_hash_checked         = iv(values[2]);
+var get_state               = iv(values[3]);
+torrent.name                = values[4];
+torrent.size                = values[5];
+var get_completed_chunks    = iv(values[6]);
+var get_size_chunks         = iv(values[7]);
+torrent.downloaded          = iv(values[8]);
+torrent.uploaded            = iv(values[9]);
+torrent.ratio               = iv(values[10]);
+torrent.ul                  = iv(values[11]);
+torrent.dl                  = iv(values[12]);
+var get_chunk_size          = iv(values[13]);
+torrent.label               = $.trim(decodeURIComponent(values[14]));
+torrent.peers_actual        = values[15];
+var get_peers_not_connected = iv(values[16]);
+var get_peers_connected     = iv(values[17]);
+torrent.seeds_actual        = values[18];
+torrent.remaining           = values[19];
+torrent.priority            = values[20];
+torrent.state_changed       = values[21];
+torrent.skip_total          = values[22];
+var get_hashing             = iv(values[23]);
+var get_hashed_chunks       = iv(values[24]);
+torrent.base_path           = values[25];
+torrent.created             = values[26];
+torrent.tracker_focus       = values[27];
+var is_active               = iv(values[28]);
+torrent.msg                 = values[29];
+torrent.comment             = values[30];
+torrent.free_diskspace      = values[31];
+torrent.private             = values[32];
+torrent.multi_file          = iv(values[33]);
+....
+
+== Fields of interest
+
+* hash:
+  - Infohash of the torrent
+  - update when a torrent "appears"
+* name:
+  - name of the torrent
+  - update when a torrent "appears"
+* first_seen_time:
+  - the first time my script sees the script
+  - will be on a 10 minute boundary
+  - update when a torrent "appears"
+* added_time:
+  - time the torrent was added according to rtorrent
+  - update when a torrent "appears"
+* label:
+  - compare current and previous every run
+  - update when current and previous changes
+  - update when torrent is newly added
+
+* notification_received_time:
+  - time when the notification is received about completion
+  - only works if the chat server and chat client are up and running
+  - update "out of cycle" , when notification is received
+
+* final_seen_time:
+  - will be on a 10 minute boundary
+  - update when torrent "disappears"
+
+* percentage_at_final_seen_time:
+  - update when torrent "disappears"
+
+* completion_seen_time:
+  - compare current and previous every run
+  - update when current is 100% and previous is not
+  - will be on a 10 minute boundary
+
+* save_path:
+  - compare current and previous every run
+  - update when current and previous change
+
+* num_times_seen:
+  - update when a torrent "appears" but hash is already in the database
+
+
+=== NOTES
+* difference between added_time and first seen time should never be more than 10 minutes
+* a torrent is "still in seedbox" if both notification_received_time and final_seen_time is -1
+
+== Every 10 minutes ....
+
+----
+saved file = previous_list
+newly downloaded file = current_list
+----
+
+----
+newly added torrents = (current_list - previous_list)
+newly removed torrents = (previous_list - current_list)
+continued torrents = (current_list.intersection(previous_list))
+----
+
+compare and update fields
+
+== Work Flows
+
+* for a normal torrent
+** you add it
+** added_time is set accurately
+** first_seen_time is set on a 10 minute boundary
+** label is set
+** it finishes, notification time is set accurately
+** completion_seen_time is set on a 10 minute boundary
+** you offload and delete it
+** final_seen_time is set on a 10 minute boundary
+** percentage_at_final_seen is set to 100
+
+* for torrents you add, but delete after a subset is downloaded
+** label,added_time, first_seen_time are set accurately
+** completion_seen_time is always at -1
+** notification_received_time is always at -1
+** final_seen_time and percentage_at final_seen_time are set, but not at 100%
+
+* for torrents you might re-add in the future
+** the "previous" and "new" lists show a torrent that's already added. Hence send email immediately
+** ignore indefinitely from that point on
+
+== Filters
+
+* to get all torrents currently sitting in the seedbox, look for
+final_seen_time = -1
+
+* to get all torrents currently sitting in the seedbox and are 100%
+complete, look for notification_received_time = -1 OR completion_seen_time != -1
+This should match the number in the "Completed" filter on the seedbox itself
+
+* if you add a torrent to the seedbox that already exists, seedbox itself will ignore you
+
