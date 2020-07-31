@@ -1,6 +1,10 @@
 = ACT website scraper
 Hari Sundararajan
 :toc:
+:sectlinks:
+:sectanchors:
+:experimental:
+
 :icons: font
 :act: https://selfcare.actcorp.in/group/blr/myaccount
 
@@ -25,33 +29,33 @@ There are multiple pieces in this project.
 === Navigating to the website (nodejs)
 
 * Trigger a connection to {act}
-
++
 WARNING: The connection *must* be triggered from inside the ACT network itself, which
 means this can not run in a cloud environment. See <<outside-ACT>> below for working around that
 
 * Look for the string _My Usage_ and click that.
-
++
 WARNING: Read <<TODO, todo>> for assumptions being made here
 
 * The resulting final HTML is then saved as the file "act.html"
 * An image is taken of just the table and saved as "act.png"
 
+'''
 
-[verse]
-____
-*Why are we using pupeeter instead of directly scraping the website?*
-
+==== Why are we using pupeeter instead of directly scraping the website?
 The main page itself can be scraped successfully. The "my usage" page is accessed via a ajax/XHR request
-. Using Chrome's developer tools we can obtain the request being made and the end point.
 
-I tried re-creating the process using curl.
+As an alternative approach, using Chrome's developer tools we can obtain the request being made and the end point.
 
+Trying the process using curl::
++
+--
 * Pull the first page, obtain the cookies
 * Second request to second page using cookies from the previous step
-
+--
++
 The returned value is a <partial-response> with some CDATA. The original view seems to be required somehow
 and I am not sure I know how to proceed.
-____
 
 [[scraping]]
 === HTML scraping (python)
@@ -172,10 +176,6 @@ create a reverse tunnel that listens on the cloud instance, but connects to my r
 pi proxy (set up using proxypi). Then puppeteer is launched with a setting to connect
 through this proxy
 
-[verse]
-____
-*Why can't I run this entire project on my raspberry p*
-
+=== Why can't I run this entire project on my raspberry pi:
 The raspberry pi runs ARM v6 processor. nodeJS is not available for this processor.
 An alternative would be to try selenium, which is listed in the TODO
-____

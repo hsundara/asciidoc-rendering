@@ -1,6 +1,10 @@
-= Bash notes
+= seedbox automation
 Hari Sundararajan
 :toc:
+:sectlinks:
+:sectanchors:
+:experimental:
+
 
 == Fuzzy search
 
@@ -8,10 +12,13 @@ https://towardsdatascience.com/fuzzy-string-matching-in-python-68f240d910fe
 
 
 == fields as seen by code
-ruTorrent/plugins/httprpc/init.js#L46-L138
-ruTorrent/plugins/httprpc/action.php
 
-....
+ ruTorrent/plugins/httprpc/init.js#L46-L138
+
+ ruTorrent/plugins/httprpc/action.php
+
+[source]
+----
 var is_open                 = iv(values[0]);
 var is_hash_checking        = iv(values[1]);
 var is_hash_checked         = iv(values[2]);
@@ -46,50 +53,54 @@ torrent.comment             = values[30];
 torrent.free_diskspace      = values[31];
 torrent.private             = values[32];
 torrent.multi_file          = iv(values[33]);
-....
+----
 
 == Fields of interest
 
-* hash:
+hash::
   - Infohash of the torrent
   - update when a torrent "appears"
-* name:
+
+name::
   - name of the torrent
   - update when a torrent "appears"
-* first_seen_time:
+
+first_seen_time::
   - the first time my script sees the script
   - will be on a 10 minute boundary
   - update when a torrent "appears"
-* added_time:
+
+added_time::
   - time the torrent was added according to rtorrent
   - update when a torrent "appears"
-* label:
+
+label::
   - compare current and previous every run
   - update when current and previous changes
   - update when torrent is newly added
 
-* notification_received_time:
+notification_received_time::
   - time when the notification is received about completion
   - only works if the chat server and chat client are up and running
   - update "out of cycle" , when notification is received
 
-* final_seen_time:
+final_seen_time::
   - will be on a 10 minute boundary
   - update when torrent "disappears"
 
-* percentage_at_final_seen_time:
+percentage_at_final_seen_time::
   - update when torrent "disappears"
 
-* completion_seen_time:
+completion_seen_time::
   - compare current and previous every run
   - update when current is 100% and previous is not
   - will be on a 10 minute boundary
 
-* save_path:
+save_path::
   - compare current and previous every run
   - update when current and previous change
 
-* num_times_seen:
+num_times_seen::
   - update when a torrent "appears" but hash is already in the database
 
 
